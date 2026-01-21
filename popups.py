@@ -4,27 +4,20 @@ from tkinter import ttk, messagebox
 import sqlite3
 import re
 from datetime import datetime
-import functools
-BG_COLOR = "#E6D9E0"  # Lilás muito suave (Fundo da janela)
-CARD_COLOR = "#FFFFFF"  # Branco (Fundo dos cartões/paineis)
-PRIMARY_COLOR = "#5D1B8B"  # Roxo Escuro (Títulos e Preços)
-SECONDARY_COLOR = "#2C1F8C"  # Azul/Roxo Profundo
-BUTTON_BG = "#97589C"  # Roxo Médio (Botão Adicionar/Finalizar)
-BUTTON_HOVER = "#7A3E80"  # Roxo Mais Escuro
-TEXT_COLOR = "#FFFFFF"  # Texto Branco
 
+BG_COLOR = "#E6D9E0"
+CARD_COLOR = "#FFFFFF"
+PRIMARY_COLOR = "#5D1B8B"
+BUTTON_BG = "#97589C"
+BUTTON_HOVER = "#7A3E80"
+TEXT_COLOR = "#FFFFFF"
 
-
-# =======================================================
-# CLASSE: POPUP DE PRODUTOS
-# =======================================================
 class ProdutoPopup(tk.Toplevel):
     def __init__(self, master, db, produto_atual=None):
         super().__init__(master)
         self.db = db
         self.produto_atual = produto_atual
 
-        # Configuração da Janela
         self.title("Gerir Produto")
         self.geometry("500x600")
         self.configure(bg=BG_COLOR)  # Fundo Lilás Suave
@@ -33,7 +26,7 @@ class ProdutoPopup(tk.Toplevel):
         # Categorias
         self.categorias_padrao = [
             "Base", "Corretor", "Pó Compacto/Solto", "Blush", "Iluminador",
-            "Bronzeador", "Sombra", "Rímel (Máscara)", "Delineador",
+            "Bronzeador", "Sombra", "Máscara de pestanas", "Delineador",
             "Lápis de Olhos", "Batom", "Gloss", "Lápis de Lábios",
             "Sobrancelhas", "Primer/Fixador", "Paletas/Kits"
         ]
@@ -42,24 +35,18 @@ class ProdutoPopup(tk.Toplevel):
         if produto_atual:
             self.preencher_campos()
 
+    #layout
     def setup_ui(self):
-        # --- EFEITO DE CARD (Caixa Branca no Centro) ---
-        # Frame principal que centraliza tudo
         main_frame = tk.Frame(self, bg=BG_COLOR)
         main_frame.pack(fill="both", expand=True)
 
-        # O "Cartão" branco
         self.card = tk.Frame(main_frame, bg=CARD_COLOR, bd=1, relief="solid")
-        # padx/pady externos para dar margem do fundo lilás
         self.card.place(relx=0.5, rely=0.5, anchor="center", width=420, height=520)
 
-        # --- TÍTULO ---
         titulo_txt = "Novo Produto" if not self.produto_atual else "Editar Produto"
         tk.Label(self.card, text=titulo_txt.upper(), bg=CARD_COLOR, fg=PRIMARY_COLOR,
                  font=("Segoe UI", 16, "bold")).pack(pady=(30, 20))
 
-        # --- FORMULÁRIO ---
-        # Função auxiliar para criar campos bonitos
         def criar_input(rotulo):
             frame = tk.Frame(self.card, bg=CARD_COLOR)
             frame.pack(fill="x", padx=40, pady=5)
@@ -69,52 +56,43 @@ class ProdutoPopup(tk.Toplevel):
             lbl.pack(anchor="w")
             return frame
 
-        # Nome
         f_nome = criar_input("NOME DO PRODUTO")
         self.entry_nome = self.estilizar_entry(tk.Entry(f_nome))
         self.entry_nome.pack(fill="x", ipady=4, pady=(2, 0))
 
-        # Categoria
         f_cat = criar_input("CATEGORIA")
         self.entry_cat = ttk.Combobox(f_cat, values=self.categorias_padrao, state="readonly", font=("Segoe UI", 11))
         self.entry_cat.pack(fill="x", ipady=4, pady=(2, 0))
 
-        # Marca
         f_marca = criar_input("MARCA")
         self.entry_marca = self.estilizar_entry(tk.Entry(f_marca))
         self.entry_marca.pack(fill="x", ipady=4, pady=(2, 0))
 
-        # Linha Dupla (Preço e Qtd)
         f_duplo = tk.Frame(self.card, bg=CARD_COLOR)
         f_duplo.pack(fill="x", padx=40, pady=10)
 
-        # Preço
         f_preco = tk.Frame(f_duplo, bg=CARD_COLOR)
         f_preco.pack(side="left", fill="x", expand=True, padx=(0, 10))
         tk.Label(f_preco, text="PREÇO (€)", bg=CARD_COLOR, fg="#555", font=("Segoe UI", 8, "bold")).pack(anchor="w")
         self.entry_preco = self.estilizar_entry(tk.Entry(f_preco))
         self.entry_preco.pack(fill="x", ipady=4)
 
-        # Qtd
         f_qtd = tk.Frame(f_duplo, bg=CARD_COLOR)
         f_qtd.pack(side="right", fill="x", expand=True, padx=(10, 0))
         tk.Label(f_qtd, text="STOCK (UN)", bg=CARD_COLOR, fg="#555", font=("Segoe UI", 8, "bold")).pack(anchor="w")
         self.entry_qtd = self.estilizar_entry(tk.Entry(f_qtd))
         self.entry_qtd.pack(fill="x", ipady=4)
 
-        # --- BOTÃO SALVAR (COM EFEITO HOVER) ---
         self.btn_salvar = tk.Button(self.card, text="SALVAR DADOS", command=self.salvar,
                                     bg=BUTTON_BG, fg="white",
                                     font=("Segoe UI", 11, "bold"),
                                     relief="flat", cursor="hand2")
         self.btn_salvar.pack(fill="x", padx=40, pady=(30, 20), ipady=5)
 
-        # Bindings para efeito visual no botão
         self.btn_salvar.bind("<Enter>", lambda e: self.btn_salvar.config(bg=BUTTON_HOVER))
         self.btn_salvar.bind("<Leave>", lambda e: self.btn_salvar.config(bg=BUTTON_BG))
 
     def estilizar_entry(self, widget):
-        # Configura visual input: fundo cinza claro, sem borda grossa, letra escura
         widget.config(bg="#F5F5F5", fg="#333", font=("Segoe UI", 11),
                       relief="flat", highlightthickness=1, highlightbackground="#DDD", highlightcolor=PRIMARY_COLOR)
         return widget
@@ -132,7 +110,6 @@ class ProdutoPopup(tk.Toplevel):
             cat = self.entry_cat.get()
             marca = self.entry_marca.get().strip()
 
-            # Tratamento de preço (troca vírgula por ponto)
             preco_raw = self.entry_preco.get().replace(",", ".").replace("€", "")
             qtd_raw = self.entry_qtd.get()
 
@@ -143,11 +120,12 @@ class ProdutoPopup(tk.Toplevel):
             if not qtd_raw: qtd_raw = "0"
 
             preco = float(preco_raw)
-            qtd = int(float(qtd_raw))  # int(float) permite converter "5.0" para 5
+            qtd = int(float(qtd_raw))
 
-            if self.produto_atual:  # Atualizar
+            # Atualizar
+            if self.produto_atual:
                 self.db.atualizar_produto(self.produto_atual[0], nome, cat, marca, preco, qtd)
-            else:  # Novo
+            else:
                 self.db.adicionar_produto(nome, cat, marca, preco, qtd)
 
             messagebox.showinfo("Sucesso", "Produto salvo com sucesso!")
@@ -162,9 +140,6 @@ class ProdutoPopup(tk.Toplevel):
     pass
 
 
-# =======================================================
-# CLASSE: POPUP DE FUNCIONÁRIOS
-# =======================================================
 class FuncionarioPopup(tk.Toplevel):
     def __init__(self, master, db, func_atual=None):
         super().__init__(master)
@@ -179,6 +154,7 @@ class FuncionarioPopup(tk.Toplevel):
         self.setup_ui(titulo)
         if func_atual: self.preencher_campos()
 
+    #layout
     def setup_ui(self, titulo_texto):
         main_frame = tk.Frame(self, bg=BG_COLOR)
         main_frame.pack(fill="both", expand=True)
@@ -251,9 +227,6 @@ class FuncionarioPopup(tk.Toplevel):
             messagebox.showerror("Erro", f"{e}")
 
 
-# =======================================================
-# CLASSE: POPUP DE CLIENTES
-# =======================================================
 class ClientePopup(tk.Toplevel):
     def __init__(self, master, db, cliente_atual=None):
         super().__init__(master)
@@ -268,6 +241,7 @@ class ClientePopup(tk.Toplevel):
         self.setup_ui(titulo)
         if cliente_atual: self.preencher_campos()
 
+    #layout
     def setup_ui(self, titulo_texto):
         main_frame = tk.Frame(self, bg=BG_COLOR)
         main_frame.pack(fill="both", expand=True)
@@ -334,10 +308,6 @@ class ClientePopup(tk.Toplevel):
             messagebox.showerror("Erro", f"{e}")
 
 
-# =======================================================
-# CLASSE: POPUP DE ENCOMENDAS (POS)
-# =======================================================
-
 class EncomendaPopup(tk.Toplevel):
     def __init__(self, master, db, user):
         super().__init__(master)
@@ -345,65 +315,61 @@ class EncomendaPopup(tk.Toplevel):
         self.user = user
         self.itens_compra = []  # Carrinho: Lista de (id, qtd, preco)
 
-        # --- Configuração da Janela ---
         self.title("POS - Nova Venda")
-        self.state("zoomed")  # Tela cheia
+        self.state("zoomed")
         self.configure(bg=BG_COLOR)
 
-        # 1. Estrutura Principal
+        #estrutura principal
         self.setup_ui_structure()
 
-        # 2. Painéis
-        self.setup_left_panel()  # Carrinho
-        self.setup_right_panel()  # Produtos e Pesquisa
+        self.setup_left_panel()  # carrinho
+        self.setup_right_panel()  # produtos
 
-        # 3. Carregar Dados (Produtos e Categorias)
+        # carregar dados
         self.carregar_dados_seguro()
 
     def setup_ui_structure(self):
-        # Container Principal com padding
         main_container = tk.Frame(self, bg=BG_COLOR)
         main_container.pack(fill="both", expand=True, padx=20, pady=20)
 
-        # Painel Esquerdo (Carrinho) - Largura fixa
+        # painel esquerdo (carrinho)
         self.left_panel = tk.Frame(main_container, bg=CARD_COLOR, bd=0,
                                    highlightthickness=1, highlightbackground="#D1C4D9")
         self.left_panel.pack(side="left", fill="y", padx=(0, 20))
         self.left_panel.pack_propagate(False)
         self.left_panel.config(width=420)
 
-        # Painel Direito (Produtos) - Expansível
+        # painel direito (produtos)
         self.right_panel = tk.Frame(main_container, bg=BG_COLOR)
         self.right_panel.pack(side="right", fill="both", expand=True)
 
     def setup_left_panel(self):
-        # --- CABEÇALHO DO CARRINHO ---
         header = tk.Frame(self.left_panel, bg=PRIMARY_COLOR, height=60)
         header.pack(fill="x")
-        header.pack_propagate(False)  # Respeitar altura
+        header.pack_propagate(False)
 
         tk.Label(header, text="RESUMO DO PEDIDO", bg=PRIMARY_COLOR, fg="white",
                  font=("Segoe UI", 13, "bold")).pack(side="left", padx=20)
 
-        # --- SELEÇÃO DE CLIENTE ---
+        # combox clientes
         tk.Label(self.left_panel, text="CLIENTE", font=("Segoe UI", 10, "bold"),
                  bg=CARD_COLOR, fg=PRIMARY_COLOR).pack(anchor="w", padx=20, pady=(20, 5))
 
         self.clientes = self.db.consultar_clientes()
-        self.cli_map = {f"{c[1]}": c[0] for c in self.clientes}  # Nome -> ID
+        self.cli_map = {f"{c[1]}": c[0] for c in self.clientes}  # nome e id de cada cliente
 
         self.cb_cli = ttk.Combobox(self.left_panel, values=list(self.cli_map.keys()),
                                    state="readonly", font=("Segoe UI", 11))
         self.cb_cli.pack(fill="x", padx=20, ipady=4)
 
-        # --- TABELA DE ITENS ---
+        # itens selecionados
         tk.Label(self.left_panel, text="ITENS SELECIONADOS", font=("Segoe UI", 10, "bold"),
                  bg=CARD_COLOR, fg=PRIMARY_COLOR).pack(anchor="w", padx=20, pady=(20, 5))
 
         tree_frame = tk.Frame(self.left_panel, bg=CARD_COLOR)
         tree_frame.pack(fill="both", expand=True, padx=20, pady=(0, 10))
 
-        # Estilo da Treeview
+        # treeview
         style = ttk.Style()
         style.configure("Treeview.Heading", font=("Segoe UI", 9, "bold"))
         style.configure("Treeview", rowheight=25)
@@ -416,7 +382,7 @@ class EncomendaPopup(tk.Toplevel):
         self.tree.heading("Total", text="Total");
         self.tree.column("Total", width=70, anchor="e")
 
-        # Scrollbar
+        # scroll
         sb = ttk.Scrollbar(tree_frame, orient="vertical", command=self.tree.yview)
         self.tree.configure(yscrollcommand=sb.set)
 
@@ -425,7 +391,7 @@ class EncomendaPopup(tk.Toplevel):
 
         self.tree.bind("<Double-1>", self.reduzir_item)
 
-        # --- RODAPÉ (TOTAL E BOTÃO) ---
+        # finalizar venda
         bottom_frame = tk.Frame(self.left_panel, bg="#F9F9F9", bd=1, relief="solid")
         bottom_frame.pack(side="bottom", fill="x")
 
@@ -439,16 +405,14 @@ class EncomendaPopup(tk.Toplevel):
                                relief="flat", cursor="hand2")
         btn_finish.pack(fill="x", padx=20, pady=20, ipady=8)
 
-        # Efeito hover no botão finalizar
         btn_finish.bind("<Enter>", lambda e: btn_finish.config(bg=BUTTON_HOVER))
         btn_finish.bind("<Leave>", lambda e: btn_finish.config(bg=BUTTON_BG))
 
     def setup_right_panel(self):
-        # 1. BARRA DE PESQUISA (Nova funcionalidade)
+        #barra de pesquisa de produtos
         search_container = tk.Frame(self.right_panel, bg=BG_COLOR)
         search_container.pack(fill="x", pady=(0, 15))
 
-        # Caixa branca arredondada (simulada com frame)
         f_entry = tk.Frame(search_container, bg="white", bd=0, highlightthickness=1, highlightbackground=BUTTON_BG)
         f_entry.pack(fill="x", ipady=8, padx=5)
 
@@ -459,11 +423,11 @@ class EncomendaPopup(tk.Toplevel):
         self.search_entry.pack(side="left", fill="x", expand=True)
         self.search_entry.bind("<KeyRelease>", self.filtrar_pesquisa)  # Filtra ao digitar
 
-        # 2. FILTROS DE CATEGORIA
+        #filtro dos produtos
         self.cat_frame = tk.Frame(self.right_panel, bg=BG_COLOR)
         self.cat_frame.pack(fill="x", pady=(0, 10))
 
-        # 3. ÁREA DE SCROLL PARA PRODUTOS
+        # area dos botões com produtos
         container = tk.Frame(self.right_panel, bg=BG_COLOR)
         container.pack(fill="both", expand=True)
 
@@ -479,29 +443,23 @@ class EncomendaPopup(tk.Toplevel):
         self.canvas.pack(side="left", fill="both", expand=True)
         sb_v.pack(side="right", fill="y")
 
-        # Mouse Scroll
+        # scroll
         self.canvas.bind_all("<MouseWheel>", lambda e: self.canvas.yview_scroll(int(-1 * (e.delta / 120)), "units"))
 
-    # --- LÓGICA DE DADOS (SEGURA) ---
     def carregar_dados_seguro(self):
         conn = self.db.connect()
         c = conn.cursor()
 
-        # Tenta buscar tudo. Se faltarem colunas, ajusta automaticamente.
         try:
-            # Tente ajustar esta query aos nomes REAIS da sua BD
-            # Estou assumindo: CodProd, Produto, Categoria, Marca, Preco, Stock
             c.execute("SELECT * FROM Produtos")
             raw_data = c.fetchall()
 
             self.todos_produtos = []
             for row in raw_data:
-                # Previne erros se a tabela tiver menos colunas
                 p_id = row[0]
                 p_nome = row[1]
                 p_cat = row[2] if len(row) > 2 else "Geral"
 
-                # Procura preço (float) e stock (int)
                 p_preco = 0.0
                 p_stock = 0
 
@@ -511,12 +469,10 @@ class EncomendaPopup(tk.Toplevel):
                     if isinstance(item, int) and item > 1000:
                         pass  # Ignora IDs grandes
                     elif isinstance(item, int) and item != p_id:
-                        p_stock = item  # Assume outro int como stock
+                        p_stock = item
 
-                # Se não achou stock, define padrão
                 if p_stock == 0: p_stock = 50
 
-                # Tupla normalizada com 6 itens
                 self.todos_produtos.append((p_id, p_nome, p_cat, "Marca", p_preco, p_stock))
 
         except Exception as e:
@@ -525,30 +481,26 @@ class EncomendaPopup(tk.Toplevel):
 
         conn.close()
 
-        # Configurar Categorias
         categorias = sorted(list(set(p[2] for p in self.todos_produtos)))
         self.criar_botoes_categoria(categorias)
 
-        # Mostrar todos
         self.carregar_botoes_produtos(self.todos_produtos)
 
     def criar_botoes_categoria(self, categorias):
-        # Limpa botões antigos
         for w in self.cat_frame.winfo_children(): w.destroy()
 
         self.btn_filtros = {}
 
-        # Função interna para gerar comando
         def cmd(c):
             return lambda: self.filtrar_categoria(c)
 
-        # Botão TUDO
+        #botão tudo (fixo)
         b = tk.Button(self.cat_frame, text="TUDO", command=cmd("TUDO"),
                       bg=PRIMARY_COLOR, fg="white", font=("Segoe UI", 9, "bold"), relief="flat", padx=15)
         b.pack(side="left", padx=5)
         self.btn_filtros["TUDO"] = b
 
-        # Outros botões
+        # Botoões das outras categorias que variam de acordo com os produtos inseridos
         for cat in categorias:
             b = tk.Button(self.cat_frame, text=cat.upper(), command=cmd(cat),
                           bg="white", fg=PRIMARY_COLOR, font=("Segoe UI", 9, "bold"), relief="flat", padx=15)
@@ -556,7 +508,6 @@ class EncomendaPopup(tk.Toplevel):
             self.btn_filtros[cat] = b
 
     def carregar_botoes_produtos(self, lista):
-        # Limpar área de scroll
         for w in self.scrollable_frame.winfo_children(): w.destroy()
 
         cols = 4  # Número de colunas na grelha
@@ -567,12 +518,8 @@ class EncomendaPopup(tk.Toplevel):
             row = i // cols
             col = i % cols
 
-            # --- CRIAÇÃO DO BOTÃO "CARD" ---
-            # O botão contém todo o texto e é clicável por inteiro
-
             texto = f"{p_nome}\n\n{p_preco:.2f} €"
 
-            # Cor baseada no stock
             if p_stock <= 0:
                 bg_btn = "#E0E0E0"
                 fg_btn = "#999"
@@ -585,7 +532,6 @@ class EncomendaPopup(tk.Toplevel):
                 state = "normal"
                 cursor = "hand2"
 
-            # O Botão
             btn = tk.Button(self.scrollable_frame, text=texto,
                             font=("Segoe UI", 11, "bold"),
                             bg=bg_btn, fg=fg_btn,
@@ -598,31 +544,25 @@ class EncomendaPopup(tk.Toplevel):
 
             btn.grid(row=row, column=col, padx=8, pady=8)
 
-            # Efeito Hover simples (apenas se tiver stock)
             if state == "normal":
                 btn.bind("<Enter>", lambda e, b=btn: b.config(bg="#F3EBFF"))  # Roxo muito claro
                 btn.bind("<Leave>", lambda e, b=btn: b.config(bg="white"))
 
-    # --- FILTROS E PESQUISA ---
     def filtrar_pesquisa(self, event):
         termo = self.search_entry.get().lower()
         if termo == "":
             self.filtrar_categoria("TUDO")  # Reseta se vazio
             return
 
-        # Filtra na lista completa
         filtrados = [p for p in self.todos_produtos if termo in p[1].lower()]
 
-        # Reseta cores dos botões de categoria
         for b in self.btn_filtros.values(): b.config(bg="white", fg=PRIMARY_COLOR)
 
         self.carregar_botoes_produtos(filtrados)
 
     def filtrar_categoria(self, categoria):
-        # Limpa pesquisa
         self.search_entry.delete(0, tk.END)
 
-        # Atualiza cores dos botões
         for cat, btn in self.btn_filtros.items():
             if cat == categoria:
                 btn.config(bg=PRIMARY_COLOR, fg="white")
@@ -635,7 +575,7 @@ class EncomendaPopup(tk.Toplevel):
             filtrados = [p for p in self.todos_produtos if p[2] == categoria]
             self.carregar_botoes_produtos(filtrados)
 
-    # --- LÓGICA DO CARRINHO ---
+    # logica do carrinho de compras
     def adicionar_item(self, prod):
         p_id, p_nome, _, _, p_preco, p_stock = prod
 
@@ -649,7 +589,6 @@ class EncomendaPopup(tk.Toplevel):
                 self.atualizar_tabela()
                 return
 
-        # Novo item
         self.itens_compra.append((p_id, 1, p_preco))
         self.atualizar_tabela()
 

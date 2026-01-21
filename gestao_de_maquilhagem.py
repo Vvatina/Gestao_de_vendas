@@ -3,14 +3,9 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from PIL import Image, ImageTk
 import matplotlib.pyplot as plt
-from collections import defaultdict
-from datetime import datetime
-import functools  # Importante para os botões funcionarem
-import re
 import hashlib
 from popups import FuncionarioPopup, ClientePopup, EncomendaPopup, ProdutoPopup
 
-# ------------------- CONFIGURAÇÕES -------------------
 PRIMARY_COLOR = "#5D1B8B"
 SECONDARY_COLOR = "#2C1F8C"
 BUTTON_BG = "#97589C"
@@ -242,7 +237,6 @@ class MaquilhagemDB:
 
     def vendas_por_funcionario_mes(self, cod_func):
         with self.connect() as conn:
-            # Seleciona o Mês (YYYY-MM) e a Soma Total das vendas desse mês
             sql = """
             SELECT 
                 strftime('%Y-%m', E.DataEnc) AS Mes,
@@ -387,9 +381,6 @@ class MainApp(tk.Tk):
                   command=alt, **b_style).pack(side="left", padx=10)
         tk.Button(self.btn_frame, text="Apagar", command=exc, **b_style).pack(side="left", padx=10)
 
-    # Popups
-
-
     # Filtrar (busca)
     def filtrar(self, event):
         termo = self.search.get().lower()
@@ -417,7 +408,6 @@ class MainApp(tk.Tk):
         if not sel: messagebox.showwarning("Aviso","Selecione um item"); return None
         return self.tree.item(sel[0])["values"]
 
-    # Logout
     def logout(self):
         if messagebox.askyesno("Logout","Deseja realmente sair do sistema?"):
             self.destroy()
@@ -466,17 +456,14 @@ class MainApp(tk.Tk):
         self.limpar_tela_extra()
         self.search_frame.pack_forget()  # Esconde a barra de pesquisa
 
-        # --- CORREÇÃO: Limpa os botões (Novo, Editar, Apagar) ---
         for widget in self.btn_frame.winfo_children():
             widget.destroy()
 
         self.lbl_title.config(text="Relatórios de Vendas")
 
-        # Configura o frame exclusivo do relatório
         self.relatorio_frame = tk.Frame(self.main, bg=BG_COLOR)
         self.relatorio_frame.pack(fill="x", pady=10)
 
-        # Seletor de Funcionário
         tk.Label(
             self.relatorio_frame,
             text="Selecione o Funcionário:",
@@ -486,7 +473,6 @@ class MainApp(tk.Tk):
         ).pack(side="left", padx=5)
 
         funcionarios = self.db.consultar_funcionarios()
-        # Mapeia Nome -> ID
         self.func_map = {f[1]: f[0] for f in funcionarios}
 
         self.cb_func = ttk.Combobox(
@@ -498,7 +484,7 @@ class MainApp(tk.Tk):
         self.cb_func.set("Todos")
         self.cb_func.pack(side="left", padx=5)
 
-        # Evento: Quando mudar o funcionário na combobox, atualiza a tabela automaticamente
+        # quando mudar o funcionário na combobox atualiza a tabela automaticamente
         self.cb_func.bind("<<ComboboxSelected>>", lambda e: self.atualizar_relatorio_funcionario())
 
         # Botão para Gerar Gráfico
@@ -512,7 +498,6 @@ class MainApp(tk.Tk):
             relief="flat"
         ).pack(side="left", padx=10)
 
-        # Configurar a Tabela (Treeview) para mostrar Resumo
         self.tree.delete(*self.tree.get_children())
         columns = ("Funcionário", "Qtd Encomendas", "Total Vendido (€)")
         self.tree["columns"] = columns
@@ -523,7 +508,6 @@ class MainApp(tk.Tk):
             self.tree.heading(col, text=col)
             self.tree.column(col, width=200, anchor=tk.CENTER)
 
-        # Carrega os dados iniciais
         self.atualizar_relatorio_funcionario()
 
     def atualizar_relatorio_funcionario(self):
@@ -536,7 +520,6 @@ class MainApp(tk.Tk):
         if escolha != "Todos" and escolha in self.func_map:
             cod_func = self.func_map[escolha]
 
-        # Busca dados no banco (Resumo total por funcionário)
         dados = self.db.resumo_vendas_funcionarios(cod_func)
 
         total_geral = 0
@@ -544,7 +527,6 @@ class MainApp(tk.Tk):
             total_geral += total
             self.tree.insert("", "end", values=(nome, qtd, f"{total:.2f} €"))
 
-        # Opcional: Adicionar uma linha de Total Geral no final se for "Todos"
         if escolha == "Todos" and dados:
             self.tree.insert("", "end", values=("TOTAL GERAL", "", f"{total_geral:.2f} €"))
 
@@ -558,7 +540,6 @@ class MainApp(tk.Tk):
 
         cod_func = self.func_map[escolha]
 
-        # Busca dados cronológicos (Mês a Mês)
         dados = self.db.vendas_por_funcionario_mes(cod_func)
 
         if not dados:
@@ -582,10 +563,9 @@ class MainApp(tk.Tk):
         plt.xlabel("Mês", fontsize=12)
         plt.ylabel("Total Vendido (€)", fontsize=12)
         plt.grid(True, linestyle='--', alpha=0.7)
-        plt.xticks(rotation=45)  # Roda as datas para não sobrepor
+        plt.xticks(rotation=45)
         plt.tight_layout()
 
-        # Adiciona os valores em cima dos pontos
         for i, txt in enumerate(totais):
             plt.annotate(f"{txt:.0f}€", (meses[i], totais[i]), textcoords="offset points", xytext=(0, 10), ha='center')
 
@@ -606,11 +586,9 @@ class MainApp(tk.Tk):
             else:
                 self.tree.insert("", "end", values=row)
 
-    # Ações
-        # Dentro da classe App:
 
+    # chama os popus
     def cad_cli(self):
-            # Abre a janela bonita de Novo Cliente
         ClientePopup(self, self.db, None)
 
     def alt_cli(self):
@@ -663,56 +641,43 @@ class MainApp(tk.Tk):
         ProdutoPopup(self, self.db, dados)
 
     def exc_prod(self):
-        # 1. Pega TODOS os itens selecionados
         sel = self.tree.selection()
 
         if not sel:
             return messagebox.showwarning("Aviso", "Selecione pelo menos um produto para apagar.")
 
-        # 2. Confirmação Única (para não perguntar produto por produto)
         qtd = len(sel)
         resp = messagebox.askyesno("Confirmar", f"Tem certeza que deseja apagar {qtd} produto(s)?")
 
         if not resp:
             return
 
-        # Variáveis para relatório final
         apagados = 0
         nao_apagados = []
 
-        # 3. Loop para tentar apagar cada um
         for item_id in sel:
-            # Pega os dados da linha
             valores = self.tree.item(item_id, 'values')
             cod_prod = valores[0]
             nome_prod = valores[1]
 
-            # Tenta apagar no banco
             sucesso = self.db.excluir_produto(cod_prod)
 
             if sucesso:
                 apagados += 1
             else:
-                # Se falhar (por ter vendas associadas), guarda o nome na lista
                 nao_apagados.append(nome_prod)
 
-        # 4. Atualiza a tabela visualmente
         self.open_produtos()
 
-        # 5. Exibe o resultado final
         if len(nao_apagados) == 0:
             messagebox.showinfo("Sucesso", f"{apagados} produto(s) apagado(s) com sucesso!")
         else:
-            # Mensagem mais detalhada se houver erros
             msg = f"{apagados} apagado(s).\n\n"
             msg += f"{len(nao_apagados)} não puderam ser apagados (já possuem vendas):\n"
-            msg += ", ".join(nao_apagados)  # Mostra os nomes separados por vírgula
+            msg += ", ".join(nao_apagados)
             msg += "\n\nDica: Para estes, altere o stock para 0 ou mude o nome."
 
             messagebox.showwarning("Relatório de Exclusão", msg)
-        # ---------------------------------------------------------
-        # GESTÃO DE FUNCIONÁRIOS (NOVO CÓDIGO)
-        # ---------------------------------------------------------
 
     def cad_func(self):
         FuncionarioPopup(self, self.db, None)
@@ -728,7 +693,6 @@ class MainApp(tk.Tk):
         if not selecionados:
             return messagebox.showwarning("Aviso", "Selecione pelo menos um funcionário.")
 
-            # Confirmação antes de apagar
         resp = messagebox.askyesno("Confirmar Exclusão",
                                        f"Tem a certeza que deseja apagar {len(selecionados)} registo(s)?\nEssa ação não pode ser desfeita.")
         if not resp:
@@ -741,7 +705,6 @@ class MainApp(tk.Tk):
             valores = self.tree.item(item_id, 'values')
             cod_func = valores[0]
 
-                # Proteção: Não apagar o próprio usuário logado
             if int(cod_func) == self.user['id']:
                 erro_proprio = True
                 continue
@@ -749,10 +712,8 @@ class MainApp(tk.Tk):
             self.db.excluir_funcionario(cod_func)
             apagados_count += 1
 
-            # Atualiza tabela
         self.open_funcionarios()
 
-            # Mensagens finais
         if erro_proprio:
             messagebox.showwarning("Aviso",
                                    "Alguns utilizadores foram apagados, mas você não pode apagar o seu próprio login!")
@@ -760,7 +721,6 @@ class MainApp(tk.Tk):
             messagebox.showinfo("Sucesso", f"{apagados_count} funcionário(s) apagado(s).")
 
     def cad_enc(self):
-        # Abre o POS (Ponto de )
         EncomendaPopup(self, self.db, self.user)
 
     def alt_enc(self):
@@ -768,7 +728,6 @@ class MainApp(tk.Tk):
         if not d: return
         nenc = d[0]
 
-        # Buscar detalhes da encomenda
         conn = self.db.connect()
         c = conn.cursor()
         c.execute("SELECT CodCli, DataEnc FROM Encomendas WHERE NEnc=?", (nenc,))
@@ -782,13 +741,11 @@ class MainApp(tk.Tk):
         itens = c.fetchall()
         conn.close()
 
-        # popup
         win = tk.Toplevel(self)
         win.title(f"Detalhes Encomenda {nenc}")
         win.geometry("700x500")
         win.configure(bg=BG_COLOR)
 
-        # Cliente e data
         tk.Label(win, text="Cliente:", bg=BG_COLOR, fg=PRIMARY_COLOR, font=("Arial", 12, "bold")).pack(anchor="w",
                                                                                                        padx=10, pady=5)
         clientes = self.db.consultar_clientes()
@@ -799,7 +756,6 @@ class MainApp(tk.Tk):
                                                                                                     pady=5)
         tk.Label(win, text=data_enc, bg=BG_COLOR, font=("Arial", 12)).pack(anchor="w", padx=20)
 
-        # itens da encomenda
         tree_itens = ttk.Treeview(win, columns=("Produto", "Qtd", "Preço Unit.", "Subtotal"), show="headings")
         for col, w in zip(("Produto", "Qtd", "Preço Unit.", "Subtotal"), (250, 50, 100, 100)):
             tree_itens.heading(col, text=col)
@@ -816,32 +772,25 @@ class MainApp(tk.Tk):
             pady=10)
 
     def exc_enc(self):
-        # 1. Verificação de segurança
         if self.user['cargo'] != "Admin":
             return messagebox.showerror("Erro", "Permissão negada")
 
-        # 2. Obter TODOS os itens selecionados na tabela
         selecionados = self.tree.selection()
 
         if not selecionados:
             return messagebox.showwarning("Aviso", "Selecione pelo menos uma encomenda.")
 
-        # 3. Confirmação única para tudo
         qtd = len(selecionados)
         if not messagebox.askyesno("Apagar", f"Tem a certeza que deseja apagar {qtd} encomenda(s)?"):
             return
 
-        # 4. Loop para apagar um por um
         try:
             for item_id in selecionados:
-                # Pega os valores da linha (o ID geralmente é o primeiro item, índice 0)
                 valores = self.tree.item(item_id, 'values')
                 id_encomenda = valores[0]
 
-                # Chama a função de apagar do banco
                 self.db.excluir_encomenda(id_encomenda)
 
-            # 5. Atualiza a tela
             messagebox.showinfo("Sucesso", "Encomendas apagadas com sucesso!")
             self.open_encomendas()
 
